@@ -259,11 +259,11 @@
 		touchEnd:function(e){
 			var px = e.changedTouches[0].pageX - this.touchStartX;
 			var dir = px > 0 ? 1 : 0;
+			this.setState({
+				isTouch:false
+			})
 			//如果touch距离大于5就执行滚动
 			if(Math.abs(px) > 5){
-				this.setState({
-					isTouch:false
-				})
 				if(dir){
 					this.prev();
 				}else{
