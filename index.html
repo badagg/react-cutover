@@ -102,12 +102,14 @@
 				i = this.props.index,
 				p = this.props.page,
 				t = this.props.total,
-				e = this.props.effect;
+				e = this.props.effect,
+				dist = this.props.dist,
+				isTouch = this.props.isTouch;
 			var x = 0;
 			var alpha = 1;
 			var visible = "block";
 			var z = 0;
-
+			
 			if(e === "scroll"){
 				if(i == p){
 					x = 0;
@@ -130,6 +132,12 @@
 				if(i==t-1 && p == 1 || i==t-1 && p == 0){
 					z = 0
 				}
+				//处理touchmove事件
+				if(isTouch){
+					if(i == p || Math.abs(p-i) == 1 || p == t-1 && i == 0 || p == 0 && i == t-1){
+						x += dist;
+					}
+				}
 			}else if(e === "fade"){
 				if(i == p){
 					z = 1;
@@ -147,7 +155,7 @@
 			}
 			
 			return (
-				<div className="cutover-item" style={{
+				<div ref="myItem" className="cutover-item" style={{
 						'left':x,
 						'zIndex':z,
 						'opacity':alpha,
@@ -184,7 +192,9 @@
 				page:0,
 				total:0,
 				width:0,
-				timer:null
+				timer:null,
+				dist:0,
+				isTouch:false
 			}
 		},
 		getDefaultProps:function(){
@@ -233,6 +243,38 @@
 				page:p
 			})
 		},
+		touchStartX:0,
+		touchStart:function(e){
+			this.touchStartX = e.changedTouches[0].pageX;
+			this.setState({
+				isTouch:true
+			})
+		},
+		touchMove:function(e){
+			var px = e.changedTouches[0].pageX-this.touchStartX;
+			this.setState({
+				dist:px
+			})
+		},
+		touchEnd:function(e){
+			var px = e.changedTouches[0].pageX - this.touchStartX;
+			var dir = px > 0 ? 1 : 0;
+			//如果touch距离大于5就执行滚动
+			if(Math.abs(px) > 5){
+				this.setState({
+					isTouch:false
+				})
+				if(dir){
+					this.prev();
+				}else{
+					this.next();
+				}
+			}else{
+				this.setState({
+					dist:0
+				})
+			}
+		},
 		render:function(){
 			var the = this;
 			var items = [];
@@ -248,7 +290,9 @@
 					index={index}
 					page={the.state.page}
 					total={the.props.data.length}
-					effect={the.props.effect} />);
+					effect={the.props.effect}
+					isTouch={the.state.isTouch}
+					dist={the.state.dist} />);
 
 				trigs.push(<CutoverTrig 
 					key={index}
@@ -260,7 +304,7 @@
 			
 			return (
 				<div ref="myCutover" className="cutover" onMouseEnter={this.pause} onMouseLeave={this.auto}>
-					<div className="cutover-panel">{items}</div>
+					<div className="cutover-panel" onTouchStart={this.touchStart} onTouchEnd={this.touchEnd} onTouchMove={this.touchMove}>{items}</div>
 					<div className="cutover-trig">{trigs}</div>
 					<a className="cutover-btn cutover-prev" onClick={this.prev}>prev</a>
 					<a className="cutover-btn cutover-next" onClick={this.next}>next</a>
@@ -270,7 +314,7 @@
 	})
 
 	ReactDOM.render(
-		<Cutover interval={5000} auto={true} effect='scroll' data={cutoverData} />,
+		<Cutover interval={5000} auto={false} effect='scroll' data={cutoverData} />,
 		document.getElementById('box')
 	)
 
